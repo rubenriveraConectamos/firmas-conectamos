@@ -233,7 +233,7 @@
 
     const SVG_PIN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="#00C9B1" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
 
-    const LOGO_B64 = 'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MzQuNDkgNDI2Ljk0Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjN2JjN2MxOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik01MDguNTIsNTQuNTJjLTEzLjI0LTQuOTEtMjMuNjgtMTUuMzYtMjguNTgtMjguNjFMNDcwLjM2LDBsLTkuNTksMjUuOTVjLTQuODksMTMuMjItMTUuMywyMy42NS0yOC41MiwyOC41NWwtMjYuMDQsOS42NSwyNS45OCw5LjZjMTMuMjQsNC44OSwyMy42NywxNS4zMywyOC41NiwyOC41Nmw5LjYsMjUuOTgsOS42LTI1Ljk4YzQuODktMTMuMjQsMTUuMzMtMjMuNjcsMjguNTYtMjguNTZsMjUuOTgtOS42LTI1Ljk5LTkuNjNoLjAyWiIvPgogIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTM3NC42MywzNTYuNTN2LTEwMy4zNWMwLTM3LjQ5LTMwLjY3LTY4LjE2LTY4LjE2LTY4LjE2SDEyMi41M3YuMDVjLS41My0uMDUtMS4wNS0uMDUtMS41Ny0uMDVDNTEuMTYsMTg1LjAyLDAsMjM2LjE5LDAsMzA1Ljk4czUxLjE3LDEyMC45NiwxMjAuOTYsMTIwLjk2YzU1LjMxLDAsOTguNzEtMzEuNzgsMTE0LjYzLTc5LjhoLTUyLjc5Yy0xMi4yOSwyMS43My0zNC42OCwzNS41OS02MS44NCwzNS41OS00MS44OCwwLTcyLjE4LTMyLjU5LTcyLjE4LTc2Ljc1czMwLjMtNzYuOCw3Mi4xOC03Ni44Yy41MiwwLDEuMDUsMCwxLjU3LjA1di0uMDloMTg5LjE1YzEwLjkzLDAsMTkuNzgsOC44NiwxOS43OCwxOS43OHYxMTQuMTNjMCwzNS4xNSwyOC40OSw2My42NCw2My42NCw2My42NGg3NC40MnYtNDIuNzJoLTY3LjQ1Yy0xNS4xNSwwLTI3LjQ0LTEyLjI4LTI3LjQ0LTI3LjQ0aDBaIi8+CiAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMzc0LjQ4LDEzNy43MXYtNzMuNTZoLTQzLjg1djcyLjc0YzAsMzUuMDksMjguNTUsNjMuNjQsNjMuNjQsNjMuNjRoNzYuMDl2LTQzLjA0aC03Ni4wOWMtMTAuOTEsMC0xOS43OC04Ljg3LTE5Ljc4LTE5Ljc4aC0uMDFaIi8+Cjwvc3ZnPg==';
+    const LOGO_URL = 'https://firmas-conectamos.vercel.app/logo.svg';
 
     function generateSignatureHTML() {
       const name     = document.getElementById('inp-nombre').value.trim();
@@ -266,7 +266,7 @@
             `</table>` +
           `</td>` +
           `<td style="vertical-align:middle;padding-left:32px;">` +
-            `<img src="data:image/svg+xml;base64,${LOGO_B64}" height="80" style="display:block;height:80px;" alt="Conectamos" />` +
+            `<img src="${LOGO_URL}" height="80" style="display:block;height:80px;" alt="Conectamos" />` +
           `</td>` +
         `</tr>` +
       `</table>`;
@@ -291,16 +291,31 @@
       el.className = 'photo-status' + (isError ? ' error' : '');
     }
 
+    function resizeToBase64(src, onDone) {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 110;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        const scale = Math.max(SIZE / img.width, SIZE / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+        onDone(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = src;
+    }
+
     function handleFileChange(input) {
       const file = input.files[0];
       if (!file) return;
       document.getElementById('file-label-text').textContent = file.name;
       const reader = new FileReader();
-      reader.onload = e => {
-        photoData = e.target.result;
+      reader.onload = e => resizeToBase64(e.target.result, data => {
+        photoData = data;
         setPhotoStatus('Foto cargada ✓');
         updatePreview();
-      };
+      });
       reader.readAsDataURL(file);
     }
 
@@ -311,14 +326,12 @@
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width  = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        canvas.getContext('2d').drawImage(img, 0, 0);
         try {
-          photoData = canvas.toDataURL('image/jpeg', 0.85);
-          setPhotoStatus('Foto cargada ✓');
-          updatePreview();
+          resizeToBase64(img.src, data => {
+            photoData = data;
+            setPhotoStatus('Foto cargada ✓');
+            updatePreview();
+          });
         } catch (_) {
           setPhotoStatus('Error CORS: usa "Subir archivo" en su lugar.', true);
         }
