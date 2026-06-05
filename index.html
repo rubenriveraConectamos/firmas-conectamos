@@ -233,6 +233,8 @@
 
     const SVG_PIN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="#00C9B1" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
 
+    const LOGO_B64 = 'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MzQuNDkgNDI2Ljk0Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjN2JjN2MxOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik01MDguNTIsNTQuNTJjLTEzLjI0LTQuOTEtMjMuNjgtMTUuMzYtMjguNTgtMjguNjFMNDcwLjM2LDBsLTkuNTksMjUuOTVjLTQuODksMTMuMjItMTUuMywyMy42NS0yOC41MiwyOC41NWwtMjYuMDQsOS42NSwyNS45OCw5LjZjMTMuMjQsNC44OSwyMy42NywxNS4zMywyOC41NiwyOC41Nmw5LjYsMjUuOTgsOS42LTI1Ljk4YzQuODktMTMuMjQsMTUuMzMtMjMuNjcsMjguNTYtMjguNTZsMjUuOTgtOS42LTI1Ljk5LTkuNjNoLjAyWiIvPgogIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTM3NC42MywzNTYuNTN2LTEwMy4zNWMwLTM3LjQ5LTMwLjY3LTY4LjE2LTY4LjE2LTY4LjE2SDEyMi41M3YuMDVjLS41My0uMDUtMS4wNS0uMDUtMS41Ny0uMDVDNTEuMTYsMTg1LjAyLDAsMjM2LjE5LDAsMzA1Ljk4czUxLjE3LDEyMC45NiwxMjAuOTYsMTIwLjk2YzU1LjMxLDAsOTguNzEtMzEuNzgsMTE0LjYzLTc5LjhoLTUyLjc5Yy0xMi4yOSwyMS43My0zNC42OCwzNS41OS02MS44NCwzNS41OS00MS44OCwwLTcyLjE4LTMyLjU5LTcyLjE4LTc2Ljc1czMwLjMtNzYuOCw3Mi4xOC03Ni44Yy41MiwwLDEuMDUsMCwxLjU3LjA1di0uMDloMTg5LjE1YzEwLjkzLDAsMTkuNzgsOC44NiwxOS43OCwxOS43OHYxMTQuMTNjMCwzNS4xNSwyOC40OSw2My42NCw2My42NCw2My42NGg3NC40MnYtNDIuNzJoLTY3LjQ1Yy0xNS4xNSwwLTI3LjQ0LTEyLjI4LTI3LjQ0LTI3LjQ0aDBaIi8+CiAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMzc0LjQ4LDEzNy43MXYtNzMuNTZoLTQzLjg1djcyLjc0YzAsMzUuMDksMjguNTUsNjMuNjQsNjMuNjQsNjMuNjRoNzYuMDl2LTQzLjA0aC03Ni4wOWMtMTAuOTEsMC0xOS43OC04Ljg3LTE5Ljc4LTE5Ljc4aC0uMDFaIi8+Cjwvc3ZnPg==';
+
     function generateSignatureHTML() {
       const name     = document.getElementById('inp-nombre').value.trim();
       const area     = document.getElementById('inp-area').value.trim();
@@ -262,6 +264,7 @@
                 `<td style="font-size:13px;color:#ffffff;line-height:1.6;">${ADDR1}<br>${ADDR2}</td>` +
               `</tr>` +
             `</table>` +
+            `<img src="data:image/svg+xml;base64,${LOGO_B64}" height="36" style="display:block;margin-top:16px;height:36px;" alt="Conectamos" />` +
           `</td>` +
         `</tr>` +
       `</table>`;
@@ -322,6 +325,22 @@
       img.src = url;
     }
 
+    function copyFallback(html, onDone) {
+      const el = document.createElement('div');
+      el.innerHTML = html;
+      el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+      document.body.appendChild(el);
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      try { document.execCommand('copy'); } catch (_) {}
+      sel.removeAllRanges();
+      document.body.removeChild(el);
+      onDone();
+    }
+
     function copyHTML() {
       const html = generateSignatureHTML();
       const btn  = document.getElementById('btn-copy');
@@ -335,17 +354,13 @@
         }, 2000);
       }
 
-      navigator.clipboard.writeText(html).then(showCopied).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = html;
-        ta.style.cssText = 'position:fixed;opacity:0;';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        try { document.execCommand('copy'); } catch (_) {}
-        document.body.removeChild(ta);
-        showCopied();
-      });
+      if (navigator.clipboard && window.ClipboardItem) {
+        const blob = new Blob([html], { type: 'text/html' });
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })])
+          .then(showCopied).catch(() => copyFallback(html, showCopied));
+      } else {
+        copyFallback(html, showCopied);
+      }
     }
 
     ['inp-nombre', 'inp-area', 'inp-whatsapp'].forEach(id => {
