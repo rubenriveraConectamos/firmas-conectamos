@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de Firma | Conectamos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    header {
+      background: #0f1628;
+      padding: 18px 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { color: #fff; font-size: 18px; font-weight: 700; }
+    header span { color: #00C9B1; font-size: 13px; font-weight: 500; }
+    .container {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 32px;
+      padding: 36px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .form-panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      height: fit-content;
+    }
+    .form-panel h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f1628;
+      margin-bottom: 22px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #00C9B1;
+    }
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+    }
+    .field input[type="text"] {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1a1a2e;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input[type="text"]:focus { border-color: #00C9B1; }
+    .photo-tabs {
+      display: flex;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .photo-tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: #999;
+      transition: all 0.2s;
+    }
+    .photo-tab.active { background: #00C9B1; color: #fff; }
+    .photo-pane { display: none; }
+    .photo-pane.active { display: block; }
+    .file-upload-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 13px;
+      border: 1.5px dashed #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #aaa;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .file-upload-label:hover { border-color: #00C9B1; color: #00C9B1; }
+    .file-upload-label input { display: none; }
+    .url-row { display: flex; gap: 8px; }
+    .url-row input[type="text"] {
+      flex: 1;
+      padding: 10px 13px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    .url-row input[type="text"]:focus { border-color: #00C9B1; }
+    .btn-usar {
+      padding: 10px 16px;
+      background: #00C9B1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .photo-status {
+      font-size: 12px;
+      color: #00C9B1;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+    .photo-status.error { color: #e55; }
+    .preview-panel { display: flex; flex-direction: column; gap: 20px; }
+    .preview-panel h2 { font-size: 15px; font-weight: 700; color: #0f1628; }
+    .preview-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: auto;
+    }
+    .copy-row { display: flex; flex-direction: column; gap: 8px; }
+    .btn-copy {
+      padding: 13px 28px;
+      background: #0f1628;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: background 0.2s;
+    }
+    .btn-copy:hover { background: #1c2d52; }
+    .btn-copy.copied { background: #00C9B1; }
+    .copy-hint { font-size: 12px; color: #aaa; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Generador de Firma Corporativa</h1>
+    <span>Conectamos</span>
+  </header>
+
+  <div class="container">
+
+    <div class="form-panel">
+      <h2>Tus datos</h2>
+
+      <div class="field">
+        <label>Nombre completo</label>
+        <input type="text" id="inp-nombre" placeholder="Ej: Adriana Isabel Domínguez" />
+      </div>
+
+      <div class="field">
+        <label>Área / Departamento</label>
+        <input type="text" id="inp-area" placeholder="Ej: Área Comercial" />
+      </div>
+
+      <div class="field">
+        <label>WhatsApp</label>
+        <input type="text" id="inp-whatsapp" placeholder="Ej: 55 2970 6848" />
+      </div>
+
+      <div class="field">
+        <label>Foto de perfil</label>
+        <div class="photo-tabs">
+          <button class="photo-tab active" onclick="switchTab('file')">Subir archivo</button>
+          <button class="photo-tab" onclick="switchTab('url')">Pegar URL</button>
+        </div>
+
+        <div class="photo-pane active" id="pane-file">
+          <label class="file-upload-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span id="file-label-text">Seleccionar imagen…</span>
+            <input type="file" id="inp-file" accept="image/*" onchange="handleFileChange(this)" />
+          </label>
+        </div>
+
+        <div class="photo-pane" id="pane-url">
+          <div class="url-row">
+            <input type="text" id="inp-url" placeholder="https://…" />
+            <button class="btn-usar" onclick="handleUrlLoad()">Usar</button>
+          </div>
+        </div>
+
+        <div class="photo-status" id="photo-status"></div>
+      </div>
+    </div>
+
+    <div class="preview-panel">
+      <h2>Vista previa</h2>
+      <div class="preview-box" id="preview-box"></div>
+      <div class="copy-row">
+        <button class="btn-copy" id="btn-copy" onclick="copyHTML()">Copiar HTML para Gmail</button>
+        <p class="copy-hint">
+          Abre Gmail → Configuración → Ver toda la configuración → General → Firma → pega con Ctrl+V
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const WEBSITE = 'https://conectamos.ai/';
+    const ADDR1   = 'Oficina 702, Laguna de Terminos 221';
+    const ADDR2   = 'Torre A. Miguel Hidalgo, 11520 CDMX.';
+
+    let photoData = '';
+
+    const SVG_WA = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="#00C9B1" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+
+    const SVG_GLOBE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00C9B1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+
+    const SVG_PIN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="#00C9B1" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+
+    function generateSignatureHTML() {
+      const name     = document.getElementById('inp-nombre').value.trim();
+      const area     = document.getElementById('inp-area').value.trim();
+      const whatsapp = document.getElementById('inp-whatsapp').value.trim();
+
+      const photoCell = photoData
+        ? `<img src="${photoData}" width="110" height="110" style="border-radius:50%;border:3px solid #00C9B1;display:block;object-fit:cover;width:110px;height:110px;" />`
+        : `<div style="width:110px;height:110px;border-radius:50%;border:3px solid #00C9B1;background:#2a3a5c;"></div>`;
+
+      return `<table cellpadding="0" cellspacing="0" border="0" style="background-color:#0f1628;padding:24px 32px;border-radius:10px;font-family:Arial,Helvetica,sans-serif;">` +
+        `<tr>` +
+          `<td style="padding-right:28px;vertical-align:middle;">${photoCell}</td>` +
+          `<td style="vertical-align:top;padding-top:4px;">` +
+            `<p style="margin:0 0 4px 0;font-size:18px;font-weight:bold;color:#ffffff;white-space:nowrap;">${name || 'Tu nombre'}</p>` +
+            `<p style="margin:0 0 18px 0;font-size:14px;font-style:italic;color:#00C9B1;">${area || 'Tu área'}</p>` +
+            `<table cellpadding="0" cellspacing="0" border="0">` +
+              `<tr>` +
+                `<td style="padding-right:12px;vertical-align:middle;padding-bottom:12px;">${SVG_WA}</td>` +
+                `<td style="font-size:15px;color:#ffffff;font-weight:bold;padding-bottom:12px;white-space:nowrap;">${whatsapp || '-- ---- ----'}</td>` +
+              `</tr>` +
+              `<tr>` +
+                `<td style="padding-right:12px;vertical-align:middle;padding-bottom:12px;">${SVG_GLOBE}</td>` +
+                `<td style="font-size:14px;color:#ffffff;font-weight:bold;padding-bottom:12px;">${WEBSITE}</td>` +
+              `</tr>` +
+              `<tr>` +
+                `<td style="padding-right:12px;vertical-align:top;">${SVG_PIN}</td>` +
+                `<td style="font-size:13px;color:#ffffff;line-height:1.6;">${ADDR1}<br>${ADDR2}</td>` +
+              `</tr>` +
+            `</table>` +
+          `</td>` +
+        `</tr>` +
+      `</table>`;
+    }
+
+    function updatePreview() {
+      document.getElementById('preview-box').innerHTML = generateSignatureHTML();
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.photo-tab').forEach((el, i) => {
+        el.classList.toggle('active', (i === 0) === (tab === 'file'));
+      });
+      document.getElementById('pane-file').classList.toggle('active', tab === 'file');
+      document.getElementById('pane-url').classList.toggle('active', tab === 'url');
+      setPhotoStatus('');
+    }
+
+    function setPhotoStatus(msg, isError) {
+      const el = document.getElementById('photo-status');
+      el.textContent = msg;
+      el.className = 'photo-status' + (isError ? ' error' : '');
+    }
+
+    function handleFileChange(input) {
+      const file = input.files[0];
+      if (!file) return;
+      document.getElementById('file-label-text').textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = e => {
+        photoData = e.target.result;
+        setPhotoStatus('Foto cargada ✓');
+        updatePreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleUrlLoad() {
+      const url = document.getElementById('inp-url').value.trim();
+      if (!url) return;
+      setPhotoStatus('Cargando…');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        try {
+          photoData = canvas.toDataURL('image/jpeg', 0.85);
+          setPhotoStatus('Foto cargada ✓');
+          updatePreview();
+        } catch (_) {
+          setPhotoStatus('Error CORS: usa "Subir archivo" en su lugar.', true);
+        }
+      };
+      img.onerror = () => setPhotoStatus('No se pudo cargar la imagen. Verifica el URL.', true);
+      img.src = url;
+    }
+
+    function copyHTML() {
+      const html = generateSignatureHTML();
+      const btn  = document.getElementById('btn-copy');
+
+      function showCopied() {
+        btn.textContent = '¡Copiado! ✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copiar HTML para Gmail';
+          btn.classList.remove('copied');
+        }, 2000);
+      }
+
+      navigator.clipboard.writeText(html).then(showCopied).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = html;
+        ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try { document.execCommand('copy'); } catch (_) {}
+        document.body.removeChild(ta);
+        showCopied();
+      });
+    }
+
+    ['inp-nombre', 'inp-area', 'inp-whatsapp'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updatePreview);
+    });
+
+    updatePreview();
+  </script>
+</body>
+</html>
