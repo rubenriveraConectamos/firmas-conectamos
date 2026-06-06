@@ -152,9 +152,94 @@
     .btn-copy:hover { background: #1c2d52; }
     .btn-copy.copied { background: #00C9B1; }
     .copy-hint { font-size: 12px; color: #aaa; line-height: 1.5; }
+
+    /* ── Crop modal ── */
+    #crop-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    #crop-modal.open { display: flex; }
+    #crop-dialog {
+      background: #1a2a3a;
+      border-radius: 16px;
+      padding: 28px 32px;
+      text-align: center;
+      color: #fff;
+      width: 340px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+    #crop-dialog h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    #crop-dialog p  { font-size: 12px; color: #aaa; }
+    #crop-circle {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid #00C9B1;
+      position: relative;
+      cursor: move;
+      margin: 18px auto;
+      background: #0f1628;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #crop-img { position: absolute; pointer-events: none; }
+    .zoom-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .zoom-row input[type="range"] { flex: 1; accent-color: #00C9B1; cursor: pointer; }
+    .crop-btns { display: flex; gap: 10px; justify-content: center; }
+    .btn-cancel-crop {
+      padding: 10px 24px;
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-apply-crop {
+      padding: 10px 24px;
+      background: #00C9B1;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Crop modal -->
+  <div id="crop-modal">
+    <div id="crop-dialog">
+      <h3>Ajustar foto</h3>
+      <p>Arrastra para centrar &middot; Slider para zoom</p>
+      <div id="crop-circle">
+        <img id="crop-img" draggable="false" alt="" />
+      </div>
+      <div class="zoom-row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <input type="range" id="zoom-slider" />
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </div>
+      <div class="crop-btns">
+        <button class="btn-cancel-crop" onclick="cancelCrop()">Cancelar</button>
+        <button class="btn-apply-crop" onclick="applyCrop()">Aplicar</button>
+      </div>
+    </div>
+  </div>
 
   <header>
     <h1>Generador de Firma Corporativa</h1>
@@ -239,7 +324,7 @@
       const whatsapp = document.getElementById('inp-whatsapp').value.trim();
 
       const photoCell = photoData
-        ? `<div style="width:104px;height:104px;border-radius:50%;border:3px solid #00C9B1;overflow:hidden;display:inline-block;line-height:0;"><img src="${photoData}" width="104" height="104" style="display:block;object-fit:cover;width:104px;height:104px;" /></div>`
+        ? `<img src="${photoData}" width="110" height="110" style="display:block;width:110px;height:110px;border-radius:50%;border:3px solid #00C9B1;" />`
         : `<div style="width:104px;height:104px;border-radius:50%;border:3px solid #00C9B1;background:#2a3a5c;"></div>`;
 
       return `<table cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(to bottom, #0c1928 0%, #1e3f56 30%, #3a6e78 58%, #a8d4d6 80%, #f2fafa 100%);padding:24px 32px;border-radius:10px;font-family:Arial,Helvetica,sans-serif;">` +
@@ -308,19 +393,66 @@
       el.className = 'photo-status' + (isError ? ' error' : '');
     }
 
-    function resizeToBase64(src, onDone) {
+    // ── Crop modal ────────────────────────────────────────────
+    const CROP_SIZE = 240;
+    let _cropSrc = '', _cropNW = 0, _cropNH = 0;
+    let _cropZoom = 1, _cropMinZoom = 1;
+    let _cropX = 0, _cropY = 0;
+    let _dragging = false, _dStartX = 0, _dStartY = 0, _pStartX = 0, _pStartY = 0;
+
+    function openCropModal(src) {
+      _cropSrc = src;
       const img = new Image();
       img.onload = () => {
-        const SIZE = 110;
-        const canvas = document.createElement('canvas');
-        canvas.width = SIZE; canvas.height = SIZE;
-        const ctx = canvas.getContext('2d');
-        const scale = Math.max(SIZE / img.width, SIZE / img.height);
-        const w = img.width * scale, h = img.height * scale;
-        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
-        onDone(canvas.toDataURL('image/jpeg', 0.6));
+        _cropNW = img.naturalWidth;
+        _cropNH = img.naturalHeight;
+        _cropMinZoom = Math.max(CROP_SIZE / _cropNW, CROP_SIZE / _cropNH);
+        _cropZoom = _cropMinZoom;
+        _cropX = (CROP_SIZE - _cropNW * _cropZoom) / 2;
+        _cropY = (CROP_SIZE - _cropNH * _cropZoom) / 2;
+        const sl = document.getElementById('zoom-slider');
+        sl.min = _cropMinZoom; sl.max = _cropMinZoom * 3; sl.step = 0.001; sl.value = _cropZoom;
+        renderCrop();
+        document.getElementById('crop-modal').classList.add('open');
       };
       img.src = src;
+    }
+
+    function renderCrop() {
+      const el = document.getElementById('crop-img');
+      el.src = _cropSrc;
+      el.style.width  = (_cropNW * _cropZoom) + 'px';
+      el.style.height = (_cropNH * _cropZoom) + 'px';
+      el.style.left   = _cropX + 'px';
+      el.style.top    = _cropY + 'px';
+    }
+
+    function clampPan() {
+      _cropX = Math.min(0, Math.max(CROP_SIZE - _cropNW * _cropZoom, _cropX));
+      _cropY = Math.min(0, Math.max(CROP_SIZE - _cropNH * _cropZoom, _cropY));
+    }
+
+    function cancelCrop() {
+      document.getElementById('crop-modal').classList.remove('open');
+    }
+
+    function applyCrop() {
+      const OUT = 110, scale = OUT / CROP_SIZE;
+      const canvas = document.createElement('canvas');
+      canvas.width = OUT; canvas.height = OUT;
+      const ctx = canvas.getContext('2d');
+      ctx.beginPath();
+      ctx.arc(OUT / 2, OUT / 2, OUT / 2, 0, Math.PI * 2);
+      ctx.clip();
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, _cropX * scale, _cropY * scale, _cropNW * _cropZoom * scale, _cropNH * _cropZoom * scale);
+        photoData = canvas.toDataURL('image/png');
+        setPhotoStatus('Foto ajustada ✓');
+        updatePreview();
+        cancelCrop();
+      };
+      img.src = _cropSrc;
     }
 
     function handleFileChange(input) {
@@ -328,11 +460,7 @@
       if (!file) return;
       document.getElementById('file-label-text').textContent = file.name;
       const reader = new FileReader();
-      reader.onload = e => resizeToBase64(e.target.result, data => {
-        photoData = data;
-        setPhotoStatus('Foto cargada ✓');
-        updatePreview();
-      });
+      reader.onload = e => openCropModal(e.target.result);
       reader.readAsDataURL(file);
     }
 
@@ -344,11 +472,10 @@
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         try {
-          resizeToBase64(img.src, data => {
-            photoData = data;
-            setPhotoStatus('Foto cargada ✓');
-            updatePreview();
-          });
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth; c.height = img.naturalHeight;
+          c.getContext('2d').drawImage(img, 0, 0);
+          openCropModal(c.toDataURL());
         } catch (_) {
           setPhotoStatus('Error CORS: usa "Subir archivo" en su lugar.', true);
         }
@@ -397,6 +524,49 @@
 
     ['inp-nombre', 'inp-area', 'inp-whatsapp'].forEach(id => {
       document.getElementById(id).addEventListener('input', updatePreview);
+    });
+
+    // Drag en el círculo de crop
+    const cropCircle = document.getElementById('crop-circle');
+    cropCircle.addEventListener('mousedown', e => {
+      _dragging = true;
+      _dStartX = e.clientX; _dStartY = e.clientY;
+      _pStartX = _cropX;    _pStartY = _cropY;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!_dragging) return;
+      _cropX = _pStartX + (e.clientX - _dStartX);
+      _cropY = _pStartY + (e.clientY - _dStartY);
+      clampPan(); renderCrop();
+    });
+    document.addEventListener('mouseup', () => { _dragging = false; });
+
+    // Touch
+    cropCircle.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      _dragging = true;
+      _dStartX = t.clientX; _dStartY = t.clientY;
+      _pStartX = _cropX;    _pStartY = _cropY;
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchmove', e => {
+      if (!_dragging) return;
+      const t = e.touches[0];
+      _cropX = _pStartX + (t.clientX - _dStartX);
+      _cropY = _pStartY + (t.clientY - _dStartY);
+      clampPan(); renderCrop();
+    }, { passive: false });
+    document.addEventListener('touchend', () => { _dragging = false; });
+
+    // Zoom slider
+    document.getElementById('zoom-slider').addEventListener('input', e => {
+      const newZoom = parseFloat(e.target.value);
+      const cx = CROP_SIZE / 2, cy = CROP_SIZE / 2;
+      _cropX = cx - (cx - _cropX) * newZoom / _cropZoom;
+      _cropY = cy - (cy - _cropY) * newZoom / _cropZoom;
+      _cropZoom = newZoom;
+      clampPan(); renderCrop();
     });
 
     updatePreview();
